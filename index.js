@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
+app.use("/uploads", express.static("uploads"));
 const RequestStatus = require("./utils/httpRequestStatus");
 app.use(express.json());
 app.use(cors());

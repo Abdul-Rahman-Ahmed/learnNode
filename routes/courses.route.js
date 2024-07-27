@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const coursesControllers = require("../controllers/courses.controller");
 const valdite = require("../middleware/validate.middleware");
+const verify = require("../middleware/verifyToken");
+const userRoles = require("../utils/userRoles");
+const allowedTo = require("../middleware/allowdTo");
 
 router
   .route("/")
@@ -12,6 +15,6 @@ router
   .route("/:courseId")
   .get(coursesControllers.getCourse)
   .patch(coursesControllers.editCourse)
-  .delete(coursesControllers.deleteCourse);
+  .delete(verify, allowedTo(userRoles.ADMIN), coursesControllers.deleteCourse);
 
 module.exports = router;

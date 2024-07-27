@@ -1,10 +1,8 @@
-const { validationResult } = require("express-validator");
 const Users = require("../models/users.model");
 const RequestStatus = require("../utils/httpRequestStatus");
 const appError = require("../utils/appError");
 const asyncWrapper = require("../middleware/asyncWrapper");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const newToken = require("../utils/newToken");
 
 const getUsers = asyncWrapper(async (req, res) => {
@@ -18,7 +16,7 @@ const getUsers = asyncWrapper(async (req, res) => {
 });
 
 const register = asyncWrapper(async (req, res, next) => {
-  const { firstName, lastName, email, password } = req.body;
+  const { firstName, lastName, email, password, role } = req.body;
   const oldUser = await Users.findOne({ email: email });
   if (oldUser) {
     const error = appError.create(
@@ -29,14 +27,24 @@ const register = asyncWrapper(async (req, res, next) => {
     return next(error);
   }
   const hashedPassword = await bcrypt.hash(password, 10);
+  console.log(req.file.filename);
   const newUser = new Users({
     firstName,
     lastName,
     email,
     password: hashedPassword,
+    role,
+    avatar: req.file.filename,
   });
+  const token = await newToken({
+    email: newUser.email,
+    id: newUser._id,
+    role: newUser.role,
+  });
+  newUser.token = token;
   await newUser.save();
-  res.status(201).json({ status: RequestStatus.SUCCESS, data: newUser });
+
+  res.status(201).json({ status: RequestStatus.SUCCESS, user: newUser });
 });
 
 const login = asyncWrapper(async (req, res, next) => {
@@ -60,13 +68,14 @@ const login = asyncWrapper(async (req, res, next) => {
   }
   const matchPassword = await bcrypt.compare(password, user.password);
   if (user && matchPassword) {
-    const token = newToken({ email, id: user._id });
+    const token = await newToken({ email, id: user._id, role: user.role });
     return res.status(201).json({ status: RequestStatus.SUCCESS, token });
   } else {
     const error = appError.create("something wrong", 400, RequestStatus.FAIL);
     return next(error);
   }
 });
+
 module.exports = {
   getUsers,
   register,

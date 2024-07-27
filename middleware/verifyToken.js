@@ -14,6 +14,7 @@ const verify = (req, res, next) => {
   }
   try {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    req.currentUser = decodedToken;
     next();
   } catch (err) {
     const error = appError.create("Invalid Token", 401, RequestStatus.FAIL);
